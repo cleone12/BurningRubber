@@ -5,8 +5,9 @@
  * then SndPlay() every frame. Because flushCmd only drops queued commands,
  * the engine sample (snd 2000, recorded at a nominal 1890 Hz) plays
  * continuously and each frame just re-queues it and retunes it. The rate
- * argument, ((speed / 50) * 8000 + 1000), is used as the playback rate in Hz:
- * 1000 Hz at a standstill up to about 8000 Hz flat out.
+ * argument, ((speed / 50) * 8000 + 1000), is a Fixed fraction of 22254.54 Hz,
+ * so the engine plays at about 340 Hz at a standstill up to about 3056 Hz
+ * flat out.
  */
 #include "sound.h"
 #include "resources.h"
@@ -14,6 +15,7 @@
 #include <SDL.h>
 
 #define MIX_RATE 44100
+#define RATE_22KHZ 22254.54545  /* rate22khz, 0x56EE8BA3 */
 
 typedef struct {
     const uint8_t *pcm;     /* 8-bit unsigned or 16-bit signed big-endian */
@@ -26,7 +28,7 @@ typedef struct {
     Sample cur;
     bool playing;
     double pos, step;
-    long rateOverride;      /* 0 = native */
+    double rateOverride;    /* Hz; 0 = native */
     float amp;
     bool queued;
     Sample next;
@@ -99,7 +101,7 @@ static inline float SampleAt(const Sample *s, int32_t i)
 
 static void UpdateStep(Channel *c)
 {
-    double rate = c->rateOverride > 0 ? (double)c->rateOverride : c->cur.rate;
+    double rate = c->rateOverride > 0 ? c->rateOverride : c->cur.rate;
     c->step = rate / MIX_RATE;
 }
 
@@ -203,11 +205,11 @@ void Snd_Play(int chan, int id)
     SDL_UnlockAudioDevice(gDev);
 }
 
-void Snd_SetRate(int chan, long rateHz)
+void Snd_SetRate(int chan, long rate)
 {
     if (!gDev || chan < 0 || chan >= kNumChannels) return;
     SDL_LockAudioDevice(gDev);
-    gChan[chan].rateOverride = rateHz;
+    gChan[chan].rateOverride = rate / 65536.0 * RATE_22KHZ;
     UpdateStep(&gChan[chan]);
     SDL_UnlockAudioDevice(gDev);
 }

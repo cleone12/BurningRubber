@@ -22,8 +22,9 @@ void Snd_Flush(int chan);
 /* SndPlay(chan, 'snd ' id, async): plays now if the channel is idle,
  * otherwise queues behind the sound that is playing. */
 void Snd_Play(int chan, int id);
-/* rateCmd: playback rate of the channel in samples per second. */
-void Snd_SetRate(int chan, long rateHz);
+/* rateCmd: param2 is an unsigned Fixed rate where 0x00010000 = 22254.54 Hz
+ * (rate22khz), not a rate in Hz. */
+void Snd_SetRate(int chan, long rate);
 /* ampCmd: 0..255 */
 void Snd_SetAmp(int chan, int amp);
 
