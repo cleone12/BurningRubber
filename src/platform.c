@@ -3,6 +3,7 @@
  */
 #include "platform.h"
 #include "prefs.h"
+#include "icon.h"
 
 #include <SDL.h>
 #include <stdio.h>
@@ -149,6 +150,15 @@ bool Plat_Init(void)
     gWindow = SDL_CreateWindow("Burning Rubber", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h,
                                SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!gWindow) return false;
+#ifndef __APPLE__
+    /* macOS takes the Dock icon from the app bundle's .icns instead */
+    SDL_Surface *icon = SDL_CreateRGBSurfaceWithFormatFrom((void *)kIconRGBA, ICON_W, ICON_H, 32, ICON_W * 4,
+                                                           SDL_PIXELFORMAT_RGBA32);
+    if (icon) {
+        SDL_SetWindowIcon(gWindow, icon);
+        SDL_FreeSurface(icon);
+    }
+#endif
     gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_PRESENTVSYNC);
     if (!gRenderer) gRenderer = SDL_CreateRenderer(gWindow, -1, 0);
     if (!gRenderer) return false;

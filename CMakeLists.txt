@@ -51,15 +51,21 @@ set(GAME_DATA
     ${CMAKE_SOURCE_DIR}/Levels.rsrc
 )
 set(GAME_FONT ${CMAKE_SOURCE_DIR}/fonts/ChicagoFLF.ttf)
+set(MAC_ICON ${CMAKE_SOURCE_DIR}/icons/BurningRubber.icns)
 
 if(APPLE)
     set(MACOSX_BUNDLE_BUNDLE_NAME "Burning Rubber")
     set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.jonasechterhoff.burningrubber")
     set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION})
-    add_executable(BurningRubber MACOSX_BUNDLE ${SOURCES} ${GAME_DATA} ${GAME_FONT})
-    set_source_files_properties(${GAME_DATA} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    set(MACOSX_BUNDLE_ICON_FILE BurningRubber.icns)
+    add_executable(BurningRubber MACOSX_BUNDLE ${SOURCES} ${GAME_DATA} ${GAME_FONT} ${MAC_ICON})
+    set_source_files_properties(${GAME_DATA} ${MAC_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set_source_files_properties(${GAME_FONT} PROPERTIES MACOSX_PACKAGE_LOCATION Resources/fonts)
 else()
+    if(WIN32)
+        enable_language(RC)
+        list(APPEND SOURCES icons/BurningRubber.rc)
+    endif()
     add_executable(BurningRubber WIN32 ${SOURCES})
     add_custom_command(TARGET BurningRubber POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GAME_DATA} $<TARGET_FILE_DIR:BurningRubber>

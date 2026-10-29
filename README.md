@@ -40,6 +40,8 @@ On Windows, install the libraries with vcpkg (`vcpkg install sdl2 sdl2-ttf`) and
 
 The build copies `Race.rsrc`, `Levels.rsrc` and `fonts/ChicagoFLF.ttf` next to the executable (or into the app bundle).
 
+The app icon is `icons/BurningRubber.png`. After changing it, run `python3 icons/make_icons.py` (needs Pillow) to regenerate the macOS `.icns`, the Windows `.ico` and the window icon in `src/icon.h`.
+
 ### Playing
 
 Everything works as it did in 1995: the title screen, the menu bar, the Preferences, Controls, High Scores and About dialogs, all ten levels (and beyond: after level 10 the levels repeat with less time), the police, the bonus multipliers and the high-score table.

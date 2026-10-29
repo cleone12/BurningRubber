@@ -54,6 +54,8 @@ jobs:
           test -f "$APP/Contents/Resources/Race.rsrc"
           test -f "$APP/Contents/Resources/Levels.rsrc"
           test -f "$APP/Contents/Resources/fonts/ChicagoFLF.ttf"
+          test -f "$APP/Contents/Resources/BurningRubber.icns"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$APP/Contents/Info.plist" | grep -q BurningRubber.icns
           otool -L "$APP/Contents/MacOS/BurningRubber" "$APP"/Contents/libs/*.dylib
           # nothing may still point into Homebrew
           if otool -L "$APP/Contents/MacOS/BurningRubber" "$APP"/Contents/libs/*.dylib | grep -E '/opt/homebrew|/usr/local/(opt|Cellar)'; then exit 1; fi
