@@ -31,7 +31,7 @@ jobs:
           path: build/smoke_*.bmp
 
   macos:
-    runs-on: macos-latest   # Apple Silicon
+    runs-on: macos-14   # Apple Silicon (M1); libraries built here run on macOS 14 and later
     steps:
       - uses: actions/checkout@v4
       - name: Install SDL2
