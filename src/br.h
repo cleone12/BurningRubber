@@ -114,7 +114,7 @@ extern LevelInfo *Info;
 extern bool BrakeDone;
 extern Animation Animations[11];
 extern bool Dead, GameOver;
-extern INTEGER OldSpeed, wait;
+extern INTEGER OldSpeed, WaitCount;
 extern OBJ *Items;
 extern int ItemCount;
 extern ObjSoft ItemInfo[MAX_OBJS + 1];

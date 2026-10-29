@@ -24,26 +24,26 @@ static void LoadSpeedometer(void)
 
 static void Waitproc(void)
 {
-    if (wait != 0) {
+    if (WaitCount != 0) {
         LoadSpeedometer();
         BlinckTick = 0;
-        if (wait > 38) {
+        if (WaitCount > 38) {
             GetIndString(ScoreString, 2000, 6);
             NumToString(Level, NumStr);
             ShowMessage(ScoreString, 310 - 80, 200, 36);
             ShowMessage(NumStr, 310 + 43, 200, 36);
             ShowMessage(Info->Name, 310 - StringWidth(Info->Name) / 2, 250, 36);
-        } else if (wait > 1) {
-            if ((wait + 2) % 10 == 0) PlaySound(1100);
+        } else if (WaitCount > 1) {
+            if ((WaitCount + 2) % 10 == 0) PlaySound(1100);
             SetRect(&BonRect, 620 - 38, 480 - 62, 620 - 6, 480 - 30);
-            if (wait > 8) PlotSprite(1021, BonRect);
+            if (WaitCount > 8) PlotSprite(1021, BonRect);
             else PlotSprite(1022, BonRect);
         } else {
             PlaySound(1101);
             SetRect(&BonRect, 620 - 38, 480 - 62, 620 - 6, 480 - 30);
             PlotSprite(1023, BonRect);
         }
-        wait = (INTEGER)(wait - 1);
+        WaitCount = (INTEGER)(WaitCount - 1);
     }
 }
 
@@ -142,7 +142,7 @@ static void DispProc(void)
         Line(SpeedometerConsts[Speed].h, -SpeedometerConsts[Speed].v);
         PenSize(1, 1);
 
-        if (DoneCount == wait) Info->Bonus = (INTEGER)(Info->Bonus - 1);
+        if (DoneCount == WaitCount) Info->Bonus = (INTEGER)(Info->Bonus - 1);
         if (Info->Bonus == 0) {
             Dead = true;
             PlaySound(1020);

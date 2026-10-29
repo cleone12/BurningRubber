@@ -15,7 +15,7 @@ LevelInfo *Info;
 bool BrakeDone;
 Animation Animations[11];
 bool Dead, GameOver;
-INTEGER OldSpeed, wait;
+INTEGER OldSpeed, WaitCount;
 OBJ *Items;
 int ItemCount;
 ObjSoft ItemInfo[MAX_OBJS + 1];
@@ -279,7 +279,7 @@ void EnterLevel(INTEGER level)
     OldScroll = -240;
     LastObj = 0;
     CarDirection = 0;
-    wait = 45;
+    WaitCount = 45;
     OldSpeed = 0;
     UDSpeed = 0;
     LRSpeed = 0;

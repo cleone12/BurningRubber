@@ -26,7 +26,7 @@ void DoCar(void)
         if (Jump == 0) {
             if (LKey) LRSpeed = (INTEGER)(LRSpeed - PRound(UDSpeed / 50.0 * MyCar.Steering));
             if (RKey) LRSpeed = (INTEGER)(LRSpeed + PRound(UDSpeed / 50.0 * MyCar.Steering));
-            if (AccKey && (wait == 0)) {
+            if (AccKey && (WaitCount == 0)) {
                 if (UDSpeed > 8) UDSpeed = (INTEGER)(UDSpeed + MyCar.Acc);
                 else UDSpeed = (INTEGER)(UDSpeed + MyCar.Acc * 2);
             }
