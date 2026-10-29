@@ -125,6 +125,16 @@ static Point WindowToScreen(int x, int y)
     return p;
 }
 
+/* Mouse events arrive already in logical coordinates: SDL rescales them
+ * itself once SDL_RenderSetLogicalSize is set. Only clamp them. */
+static Point EventToScreen(int x, int y)
+{
+    Point p;
+    p.h = (INTEGER)SDL_clamp(x, 0, SCREEN_W - 1);
+    p.v = (INTEGER)SDL_clamp(y, 0, gScreenH - 1);
+    return p;
+}
+
 static void ApplyWindowPrefs(void)
 {
     SDL_SetWindowFullscreen(gWindow, gPortPrefs.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
@@ -318,13 +328,13 @@ void Plat_Pump(void)
         case SDL_MOUSEBUTTONDOWN:
             if (e.button.button == SDL_BUTTON_LEFT) {
                 gButton = true;
-                Enqueue(mouseDown, 0, WindowToScreen(e.button.x, e.button.y), CurrentModifiers());
+                Enqueue(mouseDown, 0, EventToScreen(e.button.x, e.button.y), CurrentModifiers());
             }
             break;
         case SDL_MOUSEBUTTONUP:
             if (e.button.button == SDL_BUTTON_LEFT) {
                 gButton = false;
-                Enqueue(mouseUp, 0, WindowToScreen(e.button.x, e.button.y), CurrentModifiers());
+                Enqueue(mouseUp, 0, EventToScreen(e.button.x, e.button.y), CurrentModifiers());
             }
             break;
         case SDL_MOUSEMOTION:
