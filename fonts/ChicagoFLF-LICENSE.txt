@@ -1,0 +1,15 @@
+ChicagoFLF.ttf - a public-domain revival of Susan Kare's Chicago, the classic
+Mac OS system font that Burning Rubber's menus, dialogs and in-game messages
+were drawn in. Chicago itself is not part of the game files.
+
+Statement embedded in the font's own name table (copyright record):
+
+  The FLF were created by various authors including myself and Mike Wright.
+  When Casady & Greene, Inc. closed the rights went back to the authors. I
+  created ChicagoFLF and CheckboxFLF. You are free to use them as you wish. I
+  consider those two in the public domain.
+
+  Regards,
+  Robin Casady
+
+License field (name ID 13): Public Domain

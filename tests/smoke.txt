@@ -1,0 +1,14 @@
+120 shot smoke_title.bmp
+150 down 123 365
+155 up 123 365
+260 key Up
+420 keyup Up
+430 shot smoke_game.bmp
+440 mods cmd
+441 key E
+442 keyup E
+443 mods none
+480 key Return
+485 keyup Return
+540 shot smoke_shell.bmp
+560 quit

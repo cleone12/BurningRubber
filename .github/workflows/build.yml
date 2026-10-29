@@ -1,0 +1,64 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SDL2
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev libsdl2-ttf-dev
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j
+      - name: Smoke test (title screen, a few seconds of racing, back to the title)
+        working-directory: build
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          BR_TEST_SCRIPT: ../tests/smoke.txt
+          HOME: ${{ runner.temp }}
+        run: |
+          timeout 60 ./BurningRubber
+          test -s smoke_title.bmp && test -s smoke_game.bmp && test -s smoke_shell.bmp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screenshots
+          path: build/smoke_*.bmp
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SDL2
+        run: brew install sdl2 sdl2_ttf pkg-config
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j
+      - name: Check app bundle
+        run: |
+          test -f build/BurningRubber.app/Contents/MacOS/BurningRubber
+          test -f build/BurningRubber.app/Contents/Resources/Race.rsrc
+          test -f build/BurningRubber.app/Contents/Resources/Levels.rsrc
+          test -f build/BurningRubber.app/Contents/Resources/fonts/ChicagoFLF.ttf
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SDL2 via vcpkg
+        run: vcpkg install sdl2:x64-windows sdl2-ttf:x64-windows
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          cmake --build build --config Release
+      - name: Check output
+        run: |
+          if (!(Test-Path "build/Release/BurningRubber.exe")) { exit 1 }
+          if (!(Test-Path "build/Release/Race.rsrc")) { exit 1 }
+          if (!(Test-Path "build/Release/fonts/ChicagoFLF.ttf")) { exit 1 }
