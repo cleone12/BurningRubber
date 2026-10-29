@@ -31,21 +31,55 @@ jobs:
           path: build/smoke_*.bmp
 
   macos:
-    runs-on: macos-latest
+    runs-on: macos-latest   # Apple Silicon
     steps:
       - uses: actions/checkout@v4
       - name: Install SDL2
-        run: brew install sdl2 sdl2_ttf pkg-config
+        run: brew install sdl2 sdl2_ttf pkg-config dylibbundler
       - name: Build
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build -j
+      - name: Bundle SDL2 into the app
+        run: |
+          APP="dist/Burning Rubber.app"
+          mkdir -p dist
+          cp -R build/BurningRubber.app "$APP"
+          dylibbundler -od -b -x "$APP/Contents/MacOS/BurningRubber" -d "$APP/Contents/libs/" -p @executable_path/../libs/
+          codesign --force --deep --sign - "$APP"
       - name: Check app bundle
         run: |
-          test -f build/BurningRubber.app/Contents/MacOS/BurningRubber
-          test -f build/BurningRubber.app/Contents/Resources/Race.rsrc
-          test -f build/BurningRubber.app/Contents/Resources/Levels.rsrc
-          test -f build/BurningRubber.app/Contents/Resources/fonts/ChicagoFLF.ttf
+          APP="dist/Burning Rubber.app"
+          test -f "$APP/Contents/MacOS/BurningRubber"
+          test -f "$APP/Contents/Resources/Race.rsrc"
+          test -f "$APP/Contents/Resources/Levels.rsrc"
+          test -f "$APP/Contents/Resources/fonts/ChicagoFLF.ttf"
+          otool -L "$APP/Contents/MacOS/BurningRubber" "$APP"/Contents/libs/*.dylib
+          # nothing may still point into Homebrew
+          if otool -L "$APP/Contents/MacOS/BurningRubber" "$APP"/Contents/libs/*.dylib | grep -E '/opt/homebrew|/usr/local/(opt|Cellar)'; then exit 1; fi
+          codesign --verify --deep --strict "$APP"
+      - name: Smoke test from inside the bundle
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          BR_TEST_SCRIPT: ${{ github.workspace }}/tests/smoke.txt
+          HOME: ${{ runner.temp }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/smoke" && cd "$RUNNER_TEMP/smoke"
+          "$GITHUB_WORKSPACE/dist/Burning Rubber.app/Contents/MacOS/BurningRubber" &
+          pid=$!
+          for i in $(seq 60); do kill -0 $pid 2>/dev/null || break; sleep 1; done
+          if kill -0 $pid 2>/dev/null; then kill $pid; exit 1; fi
+          wait $pid
+          test -s smoke_title.bmp && test -s smoke_game.bmp && test -s smoke_shell.bmp
+      - name: Make disk image
+        run: |
+          cp README.md dist/
+          hdiutil create -volname "Burning Rubber" -srcfolder dist -ov -format UDZO BurningRubber-mac.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BurningRubber-mac-apple-silicon
+          path: BurningRubber-mac.dmg
 
   windows:
     runs-on: windows-latest
@@ -57,8 +91,34 @@ jobs:
         run: |
           cmake -B build -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
           cmake --build build --config Release
-      - name: Check output
+      - name: Package
         run: |
-          if (!(Test-Path "build/Release/BurningRubber.exe")) { exit 1 }
-          if (!(Test-Path "build/Release/Race.rsrc")) { exit 1 }
-          if (!(Test-Path "build/Release/fonts/ChicagoFLF.ttf")) { exit 1 }
+          $out = "dist/BurningRubber"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          Copy-Item build/Release/*.exe, build/Release/*.dll, build/Release/*.rsrc $out
+          Copy-Item -Recurse build/Release/fonts $out
+          Copy-Item README.md $out
+          # the Visual C++ runtime, for PCs without the redistributable installed
+          Copy-Item C:/Windows/System32/vcruntime140.dll $out
+          Get-ChildItem -Recurse $out | Select-Object FullName, Length
+          foreach ($f in "BurningRubber.exe", "SDL2.dll", "SDL2_ttf.dll", "Race.rsrc", "Levels.rsrc", "fonts/ChicagoFLF.ttf") {
+            if (!(Test-Path "$out/$f")) { Write-Error "missing $f"; exit 1 }
+          }
+      - name: Smoke test from the packaged folder
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          BR_TEST_SCRIPT: ${{ github.workspace }}/tests/smoke.txt
+        run: |
+          $dir = "$env:GITHUB_WORKSPACE/dist/BurningRubber"
+          $p = Start-Process -FilePath "$dir/BurningRubber.exe" -WorkingDirectory $dir -PassThru
+          if (!$p.WaitForExit(60000)) { $p.Kill(); Write-Error "timed out"; exit 1 }
+          if ($p.ExitCode -ne 0) { Write-Error "exit code $($p.ExitCode)"; exit 1 }
+          foreach ($f in "smoke_title.bmp", "smoke_game.bmp", "smoke_shell.bmp") {
+            if (!(Test-Path "$dir/$f")) { Write-Error "missing $f"; exit 1 }
+            Remove-Item "$dir/$f"
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BurningRubber-windows-x64
+          path: dist/
