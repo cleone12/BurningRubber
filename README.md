@@ -16,7 +16,7 @@ The original Pascal sources in the repository root are untouched. The port lives
 
 Every push builds the game on GitHub Actions. Open the repository's **Actions** tab, pick the latest green **Build** run, and download from the **Artifacts** list at the bottom (you need to be signed in to GitHub):
 
-- **BurningRubber-mac-apple-silicon** contains `BurningRubber-mac.dmg`. Open it and drag *Burning Rubber* to Applications. The app is not notarized by Apple, so the first time, right-click it and choose **Open**, then **Open** again. If macOS says it is damaged, run `xattr -cr "/Applications/Burning Rubber.app"` in Terminal.
+- **BurningRubber-mac-apple-silicon** contains `BurningRubber-mac.dmg`, for Apple Silicon Macs with macOS 11 Big Sur or later. Open it and drag *Burning Rubber* to Applications. The app is not notarized by Apple, so the first time, right-click it and choose **Open**, then **Open** again. If macOS says it is damaged, run `xattr -cr "/Applications/Burning Rubber.app"` in Terminal.
 - **BurningRubber-windows-x64** contains a `BurningRubber` folder. Unzip it and run `BurningRubber.exe`. Windows SmartScreen may warn about an unrecognised app: choose **More info**, then **Run anyway**.
 
 Artifacts are kept for 90 days.

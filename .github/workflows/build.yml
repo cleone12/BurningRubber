@@ -31,21 +31,46 @@ jobs:
           path: build/smoke_*.bmp
 
   macos:
-    runs-on: macos-14   # Apple Silicon (M1); libraries built here run on macOS 14 and later
+    runs-on: macos-15   # Apple Silicon
+    env:
+      # Homebrew's SDL2 only runs on the runner's own macOS version, so build it
+      # here for the same minimum as the game (CMAKE_OSX_DEPLOYMENT_TARGET).
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+      SDL2_VERSION: 2.32.10
+      SDL2_SHA256: 5f5993c530f084535c65a6879e9b26ad441169b3e25d789d83287040a9ca5165
+      SDL2_TTF_VERSION: 2.24.0
+      SDL2_TTF_SHA256: 0b2bf1e7b6568adbdbc9bb924643f79d9dedafe061fa1ed687d1d9ac4e453bfd
     steps:
       - uses: actions/checkout@v4
-      - name: Install SDL2
-        run: brew install sdl2 sdl2_ttf pkg-config dylibbundler
+      - name: Install tools
+        run: brew install pkg-config dylibbundler
+      - name: Build SDL2 and SDL2_ttf for macOS 11 and later
+        run: |
+          SDL_PREFIX="$RUNNER_TEMP/sdl"
+          cd "$RUNNER_TEMP"
+          curl -sSfL -o sdl2.tar.gz "https://github.com/libsdl-org/SDL/releases/download/release-$SDL2_VERSION/SDL2-$SDL2_VERSION.tar.gz"
+          curl -sSfL -o sdl2_ttf.tar.gz "https://github.com/libsdl-org/SDL_ttf/releases/download/release-$SDL2_TTF_VERSION/SDL2_ttf-$SDL2_TTF_VERSION.tar.gz"
+          echo "$SDL2_SHA256  sdl2.tar.gz" | shasum -a 256 -c
+          echo "$SDL2_TTF_SHA256  sdl2_ttf.tar.gz" | shasum -a 256 -c
+          tar xzf sdl2.tar.gz && tar xzf sdl2_ttf.tar.gz
+          # the vendored FreeType still asks for CMake 3.0, which CMake 4 refuses
+          common="-DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET -DCMAKE_INSTALL_PREFIX=$SDL_PREFIX -DCMAKE_PREFIX_PATH=$SDL_PREFIX -DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+          cmake -S "SDL2-$SDL2_VERSION" -B sdl2-build $common -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TEST=OFF
+          cmake --build sdl2-build -j && cmake --install sdl2-build
+          cmake -S "SDL2_ttf-$SDL2_TTF_VERSION" -B sdl2_ttf-build $common -DBUILD_SHARED_LIBS=ON -DSDL2TTF_VENDORED=ON -DSDL2TTF_SAMPLES=OFF
+          cmake --build sdl2_ttf-build -j && cmake --install sdl2_ttf-build
+          echo "SDL_PREFIX=$SDL_PREFIX" >> "$GITHUB_ENV"
       - name: Build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          export PKG_CONFIG_PATH="$SDL_PREFIX/lib/pkgconfig"
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$SDL_PREFIX"
           cmake --build build -j
       - name: Bundle SDL2 into the app
         run: |
           APP="dist/Burning Rubber.app"
           mkdir -p dist
           cp -R build/BurningRubber.app "$APP"
-          dylibbundler -od -b -x "$APP/Contents/MacOS/BurningRubber" -d "$APP/Contents/libs/" -p @executable_path/../libs/
+          dylibbundler -od -b -x "$APP/Contents/MacOS/BurningRubber" -d "$APP/Contents/libs/" -p @executable_path/../libs/ -s "$SDL_PREFIX/lib" < /dev/null
           codesign --force --deep --sign - "$APP"
       - name: Check app bundle
         run: |
@@ -57,8 +82,14 @@ jobs:
           test -f "$APP/Contents/Resources/BurningRubber.icns"
           /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$APP/Contents/Info.plist" | grep -q BurningRubber.icns
           otool -L "$APP/Contents/MacOS/BurningRubber" "$APP"/Contents/libs/*.dylib
-          # nothing may still point into Homebrew
-          if otool -L "$APP/Contents/MacOS/BurningRubber" "$APP"/Contents/libs/*.dylib | grep -E '/opt/homebrew|/usr/local/(opt|Cellar)'; then exit 1; fi
+          # nothing may still point into Homebrew or the SDL build
+          if otool -L "$APP/Contents/MacOS/BurningRubber" "$APP"/Contents/libs/*.dylib | grep -E "/opt/homebrew|/usr/local/(opt|Cellar)|$SDL_PREFIX"; then exit 1; fi
+          # everything must load on macOS 11
+          for f in "$APP/Contents/MacOS/BurningRubber" "$APP"/Contents/libs/*.dylib; do
+            minos=$(otool -l "$f" | awk '/LC_BUILD_VERSION/ {b=1} b && $1=="minos" {print $2; exit}')
+            echo "$f: minos $minos"
+            test "$minos" = "$MACOSX_DEPLOYMENT_TARGET"
+          done
           codesign --verify --deep --strict "$APP"
       - name: Smoke test from inside the bundle
         env:
